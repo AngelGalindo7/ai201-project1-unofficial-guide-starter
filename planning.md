@@ -1,44 +1,47 @@
-# Project 1 Planning: The Unofficial Guide
-
-> Write this document before you write any pipeline code.
-> Your spec and architecture diagram are what you'll use to direct AI tools (Claude, Copilot, etc.) to generate your implementation — the more specific they are, the more useful the generated code will be.
-> Update the Retrieval Approach and Chunking Strategy sections if you change your approach during implementation.
-> Update this file before starting any stretch features.
-
----
+# planning.md — The Unofficial UCI Professor Guide
 
 ## Domain
 
-<!-- What domain did you choose? Why is this knowledge valuable and hard to find through official channels? -->
+UCI ICS/CS professor and course experiences. More specifically student opinions on professors
+like Thornton, Shindler, Wong Ma, and Klefstad across courses like ICS 33, 45C, 46, 51,
+and 53.
+
+This knowledge is valuable because it answers things that students want to know like "Does the cs professor
+Shindler curve? Is cs professor Wong Ma worth the difficulty? What does Thornton's grading
+actually look like going into the final?" The official course catalog gives you prerequisites
+and units. But it doesn't tell you how it is like or the many opinions and suggestions that people have for those professors/courses.
+Students share this knowledge on Reddit and RateMyProfessors, but it is not searchable in one place like this.
 
 ---
 
 ## Documents
 
-<!-- List your specific sources: URLs, subreddit names, forum threads, or file descriptions.
-     Aim for at least 10 sources that together cover different subtopics or perspectives within your domain. -->
+All 10 sources are saved as .txt files in the /docs folder. Each file was manually copied
+from its source because both Reddit and RateMyProfessors block automated scraping.
 
-| # | Source | Description | URL or location |
-|---|--------|-------------|-----------------|
-| 1 | | | |
-| 2 | | | |
-| 3 | | | |
-| 4 | | | |
-| 5 | | | |
-| 6 | | | |
-| 7 | | | |
-| 8 | | | |
-| 9 | | | |
-| 10 | | | |
+| # | File | Source URL | Type | Content |
+|---|------|-----------|------|---------|
+| 1 | reddit_ics33_thornton_curve.txt | reddit.com/r/UCI/comments/14ac2rz | Reddit thread | Thornton curve details, grade going into final, passing thresholds |
+| 2 | rmp_thornton_reviews.txt | ratemyprofessors.com/professor/13200 | RMP reviews | Thornton class structure, vibes, student suggestions |
+| 3 | rmp_shindler_reviews.txt | ratemyprofessors.com/professor/2512998 | RMP reviews | Shindler grade curve, difficulty, exam style |
+| 4 | reddit_ics46_shindler_ics53_wongma.txt | reddit.com/r/UCI/comments/dzgshs | Reddit thread | One student's take on taking Shindler + Wong Ma together |
+| 5 | rmp_wongma_reviews.txt | ratemyprofessors.com/professor/2409085 | RMP reviews | Wong Ma reviews: difficulty, what you learn, grading |
+| 6 | reddit_wongma_shindler_comparison.txt | reddit.com/r/UCI/comments/13kt0jd | Reddit thread | Debate: Wong Ma hard but you learn more vs. easier alternatives |
+| 7 | rmp_klefstad_reviews.txt | ratemyprofessors.com/professor/17490 | RMP reviews | Klefstad reviews: teaching quality, complaints, overall impressions |
+| 8 | reddit_klefstad_weird.txt | reddit.com/r/UCI/comments/ait0f5 | Reddit thread | Klefstad negative/unusual classroom experiences |
+| 9 | thornton_ics46_course_reference.txt | ics.uci.edu/~thornton/ics46/CourseReference.html | Official course page | Thornton ICS 46 structure: grading breakdown, policies, expectations |
+| 10 | reddit_ics51_wongma.txt | reddit.com/r/UCI/comments/n50u8g | Reddit thread | ICS 51 with Wong Ma: workload, difficulty, student experiences |
+
+Sources span three types: Reddit threads (personal student stories), RMP
+review pages (structured individual ratings), and one official course reference page. This
+variety means the system can answer both factual questions (grading breakdown from the
+syllabus) and experiential questions (what students actually felt about surviving the class).
 
 ---
 
 ## Chunking Strategy
 
-<!-- How will you split documents into chunks?
-     State your chunk size (in tokens or characters), overlap size, and explain why those
-     numbers fit the structure of your documents.
-     A review-heavy corpus warrants different chunking than a long FAQ. -->
+**Strategy:**
 
 **Chunk size:**
 
@@ -50,28 +53,21 @@
 
 ## Retrieval Approach
 
-<!-- Which embedding model are you using (e.g., all-MiniLM-L6-v2 via sentence-transformers)?
-     How many chunks will you retrieve per query (top-k)?
-     If you were deploying this for real users and cost wasn't a constraint, what tradeoffs
-     would you weigh in choosing a different embedding model — context length, multilingual
-     support, accuracy on domain-specific text, latency? -->
-
 **Embedding model:**
+
+**Vector store:**
+
+**Retrieval method:**
 
 **Top-k:**
 
-**Production tradeoff reflection:**
+**Production tradeoffs:**
 
 ---
 
 ## Evaluation Plan
 
-<!-- List your 5 test questions with their expected correct answers.
-     Questions should be specific enough that you can judge whether the system's response
-     is right or wrong. "What are good dining halls?" is too vague.
-     "What do students say about wait times at [dining hall name] during lunch?" is testable. -->
-
-| # | Question | Expected answer |
+| # | Question | Expected Answer |
 |---|----------|-----------------|
 | 1 | | |
 | 2 | | |
@@ -83,40 +79,26 @@
 
 ## Anticipated Challenges
 
-<!-- What could go wrong? Name at least two specific risks with reasoning.
-     Consider: noisy or inconsistent documents, missing source attribution, off-topic
-     retrieval, chunks that split key information across boundaries. -->
-
 1.
 
 2.
 
----
-
-## Architecture
-
-<!-- Draw a diagram of your pipeline showing the five stages:
-     Document Ingestion → Chunking → Embedding + Vector Store → Retrieval → Generation
-     Label each stage with the tool or library you're using.
-     You can use ASCII art, a Mermaid diagram, or embed a sketch as an image.
-     You'll use this diagram as context when prompting AI tools to implement each stage. -->
+3.
 
 ---
 
 ## AI Tool Plan
 
-<!-- For each part of the pipeline below, describe:
-     - Which AI tool you plan to use (Claude, Copilot, ChatGPT, etc.)
-     - What you'll give it as input (which sections of this planning.md, which requirements)
-     - What you expect it to produce
-     - How you'll verify the output matches your spec
+**Stage 1 – Ingestion (ingest.py):**
 
-     "I'll use AI to help me code" is not a plan.
-     "I'll give Claude my Chunking Strategy section and ask it to implement chunk_text()
-     with my specified chunk size and overlap" is a plan. -->
+**Stage 2 – Chunking (chunk.py):**
 
-**Milestone 3 — Ingestion and chunking:**
+**Stage 3 – Embedding and Storage (embed.py):**
 
-**Milestone 4 — Embedding and retrieval:**
+**Stage 4 – Retrieval (retrieve.py):**
 
-**Milestone 5 — Generation and interface:**
+**Stage 5 – Generation and Interface (generate.py + app.py):**
+
+---
+
+## Architecture
