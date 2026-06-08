@@ -41,64 +41,242 @@ syllabus) and experiential questions (what students actually felt about survivin
 
 ## Chunking Strategy
 
-**Strategy:**
+**Strategy:** Recursive character text splitting, splitting on paragraph boundaries first,
+then sentence boundaries, then spaces, then characters as a last resort.
 
-**Chunk size:**
+**Chunk size:** 400 characters. **Overlap:** 75 characters.
 
-**Overlap:**
+**Why recursive splitting fits these documents:**
 
-**Reasoning:**
+The documents are a mix of Reddit comments (2–5 sentences each), RMP reviews (1–4
+sentences each), and one longer course overview page with structured paragraphs. A fixed
+character split would cut mid-sentence or merge two different students' opinions into one
+chunk. Recursive splitting respects the boundaries of both the opinion of a redditor and a paragraph section in the course reference document. It keeps these context distinct chunks
+intact wherever possible.
+
+**Why 400 characters:**
+
+A RMP review or Reddit comment is 200–500 characters. A 400 character chunk
+captures one complete opinion without merging unrelated viewpoints. Smaller chunks (under
+150 characters) will produce fragments with no context about
+which class or why those fragments match too many queries and return noise. Larger chunks
+(over 800 characters) would merge multiple student opinions into one embedding, making it
+impossible for retrieval to match a specific claim about grading or difficulty. This is an experimental variable.
+
+**Why 75 characters of overlap:**
+
+Reddit threads have replies which does not repeat some important context like the professor or class taken. A reply saying "The curve saved me" is meaningless
+without the comment it answered. A 75 character overlap carries just enough of the prior
+sentence into the next chunk to make the reply retrievable on its own. It is small enough
+not to duplicate full opinions across chunks. This is an experimental variable.
+
+**Metadata header prepended to each chunk:**
+
+Every chunk gets a header like [Professor: Thornton | Source: rmp_thornton_reviews.txt]
+added to its text before embedding. This ensures professor names and course identifiers are always present in the chunk text, so queries containing professor names or courses retrieve correctly even from review text that never repeats the professor's name.
+
+**Expected chunk count:** With 10 documents averaging 1,500–3,000 characters each after
+cleaning, and a chunk size of 400 with 75 overlap, the expected total is roughly 80–150
+chunks within the suggested project chunk count.
+
+**Diagnosing bad chunks:**
+- Too small: retrieval returns vague fragments like "he's tough" with no professor or
+  course context.
+- Too large: retrieval returns chunks mixing opinions about multiple professors or courses,
+  giving the LLM contradictory context to summarize.
 
 ---
 
 ## Retrieval Approach
 
-**Embedding model:**
+**Embedding model:** all-MiniLM-L6-v2 via sentence-transformers. Runs entirely locally
+with no API key and no rate limits, which fits the free tool stack required by this project.
 
-**Vector store:**
+**Vector store:** ChromaDB, persisted locally to a /chroma_db folder. Metadata stored per
+chunk: source filename and professor name.
 
-**Retrieval method:**
+**Retrieval method:** Hybrid search combining semantic similarity and BM25 keyword search.
+This is implemented as the core pipeline (not deferred as a stretch feature) because professor names like "Shindler," "Wong Ma," and "Klefstad" are needed context that semantic search alone can miss. A query for "does Shindler curve?" may semantically match chunks about any hard professor who curves but not specifically Shindler. BM25 treats
+the professor name as a hard keyword signal. The hybrid approach satisfies both the
+required semantic search feature and the hybrid search stretch feature.
 
-**Top-k:**
+**Score merging:** final_score = 0.6 x semantic_score + 0.4 x BM25_score. This is an experimental variable.
 
-**Production tradeoffs:**
+Semantic search is weighted higher because most queries are phrased conversationally. Which means semantic score should be weighed higher. BM25 is weighted lower to be like a tie breaker when course names or professors are mentioned.
+
+**Implementation:** Semantic search retrieves top-10 candidates from ChromaDB. BM25 via
+rank_bm25 retrieves top-10 candidates from the full chunk corpus in memory. Scores are
+normalized to the same scale before merging. Final top-5 results are passed to generation.
+
+**Top-k = 5:** Five chunks gives the LLM enough context to synthesize an answer across
+multiple students opinions without focusing on unrelated material. If eval
+tests show relevant chunks being missed, this will be tuned up.
+
+**Why semantic search finds relevant chunks without exact word matches:** The embedding
+model maps phrases like "Thornton is tough but fair" and "hard grader who curves at the
+end" to nearby points in vector space because they share meaning, even if zero words
+overlap with the query "does Thornton curve grades?"
+
+**Production tradeoffs (if cost were not a constraint):**
+- text-embedding-3-large (OpenAI) — higher accuracy on short opinion text, but adds
+  per-token cost and API dependency.
+- instructor-xl — allows query-type prefixing for better domain-specific matching, but
+  slower and heavier to run locally.
+- A multilingual model (e.g., multilingual-e5) is needed because there are a considerable amount of  international students.
 
 ---
 
 ## Evaluation Plan
 
+Each question is specific enough that a grader can judge whether the system's response is
+accurate, partially accurate, or inaccurate without subjective interpretation.
+
 | # | Question | Expected Answer |
 |---|----------|-----------------|
-| 1 | | |
-| 2 | | |
-| 3 | | |
-| 4 | | |
-| 5 | | |
+| 1 | Does Thornton curve ICS 33? | Yes — students on Reddit report that a low score going into the final can still result in a passing grade due to a curve. Specific grade ranges are mentioned in the thread. |
+| 2 | Is Wong Ma worth taking even though he is hard? | Mixed — many students say yes because you genuinely learn the material deeply and it prepares you for later courses. Others recommend easier alternatives if GPA is the priority. Both positions appear in the Reddit comparison thread and RMP reviews. |
+| 3 | What is Shindler's grading structure like in ICS 46? | Exam-heavy with a curve. Students report that practicing Shindler's specific problem sets is the key to passing. Multiple RMP reviews mention the curve explicitly. |
+| 4 | Is Wong Ma a tough professor for ICS 51? | Yes — students consistently describe Wong Ma as one of the harder ICS professors. Reviews note heavy workload and difficult exams, but many add that the difficulty pays off in how well you understand the material afterward. |
+| 5 | Is taking ICS 51 with Wong Ma and ICS 45C with Shindler in fall a good idea compared to ICS 46 and ICS 51 with Nicolau in winter? | Mixed, students say that Wong Ma and Shindler together is a very heavy load since both are demanding. Some suggest splitting them across quarters. No clear concensus.
 
 ---
 
 ## Anticipated Challenges
 
-1.
+**1. Reply-without-context problem in Reddit threads.**
+A reply "same, I barely passed" is not helpful without the comment it
+responds to. The 75-character overlap helps but will not fully solve deeply nested threads.
+Mitigation: when manually copying Reddit threads into .txt files, include the parent post
+text at the top of each reply block so the context is embedded in the file itself before
+chunking.
 
-2.
+**2. Professor name missing from chunk.**
+An RMP review might say "the curve saved my life" without ever naming the professor — that
+context lives in the page title or filename, not the review body. If the chunk loses that
+context, retrieval for "does [professor] curve?" will miss it. Mitigation: the metadata
+header [Professor: X | Source: filename.txt] prepended to every chunk ensures the
+professor name is always present in the chunk text that gets embedded.
 
-3.
+**3. Cross-professor contamination in comparison threads.**
+Reddit threads comparing Shindler and Wong Ma contain opinions about both professors. A
+chunk from that thread may get retrieved for queries about either professor, even when only
+one is relevant. Mitigation: store source_file as metadata in ChromaDB and surface it
+in every response so users can judge the source context themselves.
 
 ---
 
 ## AI Tool Plan
 
+Claude will be used to implement all five pipeline stages. For each stage, the relevant
+planning.md sections plus the pipeline diagram will be provided as context. The AI is being
+used to scaffold code from a detailed spec.
+
 **Stage 1 – Ingestion (ingest.py):**
+Input to Claude: the Documents section of this file, the folder structure (/docs with .txt
+files), and the requirement to clean navigation text and boilerplate.
+Expected output: a load_documents() function that reads all .txt files from /docs, strips
+whitespace and formatting artifacts, and returns a list of {"text": str, "source": filename}
+dicts. Will verify by printing one loaded document and checking it looks clean.
 
 **Stage 2 – Chunking (chunk.py):**
+Input to Claude: the Chunking Strategy section and the Documents section.
+Expected output: a chunk_documents() function using a pure-Python recursive character
+splitter. Implements
+the algorithm: chunk_size=400, chunk_overlap=75, separators ["\n\n", "\n", ". ", " ",
+""] in order. Function parses professor name from filename and prepends the metadata header
+to each chunk. Verified: 455 chunks, 0 empty, 0 fragments, all 5 samples readable and
+self-contained.
 
 **Stage 3 – Embedding and Storage (embed.py):**
+Input to Claude: the Retrieval Approach section and the Architecture diagram.
+Expected output: an embed_and_store() function that loads all-MiniLM-L6-v2, embeds each
+chunk, and upserts into a ChromaDB collection called "uci_professors" persisted to
+/chroma_db. Metadata fields: source and professor. Includes try/except for malformed
+chunks. Will verify by checking ChromaDB collection count matches expected chunk total.
 
 **Stage 4 – Retrieval (retrieve.py):**
+Input to Claude: the Retrieval Approach section and the Architecture diagram.
+Expected output: a retrieve() function that embeds the query, runs ChromaDB semantic
+search for top-10, runs BM25 via rank_bm25 for top-10, normalizes and merges scores at
+0.6/0.4, and returns the top-5 results with text, source, professor, and merged score.
+Will verify by running 3 evaluation questions and checking returned chunks visibly relate
+to the question with distance scores below 0.5.
 
 **Stage 5 – Generation and Interface (generate.py + app.py):**
+Input to Claude: the full Architecture diagram, the grounding requirement (answer only
+from retrieved context, refuse if not enough info), and the Gradio skeleton from the
+project instructions.
+Expected output: a generate_answer() function that formats top-5 chunks into a grounded
+prompt, calls Groq API with llama-3.3-70b-versatile loaded from .env, and returns
+{"answer": str, "sources": list}. Also a Gradio app.py with a question textbox input and
+answer + sources textbox outputs. Will verify grounding by asking a question not covered
+by any document and confirming the system refuses to answer.
 
 ---
 
 ## Architecture
+
+```mermaid
+flowchart TD
+    A["📄 Document Ingestion
+    ──────────────
+    Python open()
+    .txt files from /docs
+    Returns: {text, source}"]
+
+    B["✂️ Chunking
+    ──────────────
+    LangChain
+    RecursiveCharacterTextSplitter
+    chunk_size=400 / overlap=75
+    Prepends [Professor | Source] header
+    Returns: {text, source, professor}"]
+
+    C["🔢 Embedding
+    ──────────────
+    sentence-transformers
+    all-MiniLM-L6-v2
+    Runs locally, no API key"]
+
+    D["🗄️ Vector Store
+    ──────────────
+    ChromaDB
+    Persists to /chroma_db
+    Metadata: source, professor"]
+
+    E1["🔍 Semantic Search
+    ──────────────
+    ChromaDB cosine similarity
+    top-10 candidates"]
+
+    E2["🔑 Keyword Search
+    ──────────────
+    BM25 via rank_bm25
+    top-10 candidates"]
+
+    F["⚖️ Score Merge
+    ──────────────
+    0.6 × semantic
+    + 0.4 × BM25
+    Final top-k=5"]
+
+    G["💬 Generation
+    ──────────────
+    Groq API
+    llama-3.3-70b-versatile
+    Grounded prompt only
+    Returns: {answer, sources}"]
+
+    H["🖥️ Interface
+    ──────────────
+    Gradio Web UI
+    Input: question
+    Output: answer + sources"]
+
+    A --> B --> C --> D
+    D --> E1
+    D --> E2
+    E1 --> F
+    E2 --> F
+    F --> G --> H
+```
