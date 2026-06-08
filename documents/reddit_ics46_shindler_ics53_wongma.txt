@@ -1,0 +1,18 @@
+r/UCI
+•
+7y ago
+[deleted]
+
+is ics 46 with schindler and ics 53 with wong ma together inadvisable?
+0
+1
+Comments Section
+u/okatcoding avatar
+okatcoding
+•
+7y ago
+I’m currently taking both classes with those professors. Ics 46 with Schindler is relatively easy as he explains the concepts well and the projects are fairly easy as well (they take maybe 2-3 days at most to complete). Midterms seem easy as well but you might be screwed if you miss a concept as the midterms are around 4-6 questions. So far it has been an easy class for me and I personally haven’t heard any complaints about the workload for this class (this is not true about pattis’s 46 class however)
+
+53 wong ma on the other hand. You better be a confident/strong programmer. I don’t believe myself to be the strongest programmer and am really struggling in this class. I’m only taking 3 classes this quarter. My other two classes are on the back burner for me bc 53 is taking all of my time. I’ve spent countless hours/days on the projects and I either can’t complete them or I can never get them to work 100% correct with the exception of the first project. Even if you do amazing on the projects, if you do bad on the exams, she will fail you; yes, even if you had a passing grade for the class. But this is just my experience from ics 53 with Wong ma. Don’t get me wrong, she REALLY knows her stuff but I just can’t get the concepts I guess.
+
+6
